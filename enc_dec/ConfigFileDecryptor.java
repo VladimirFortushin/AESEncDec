@@ -1,4 +1,4 @@
-package encrypt;
+package enc_dec;
 
 import javax.crypto.*;
 import javax.crypto.spec.*;
@@ -96,3 +96,4 @@ public class ConfigFileDecryptor {
         }
     }
 }
+
