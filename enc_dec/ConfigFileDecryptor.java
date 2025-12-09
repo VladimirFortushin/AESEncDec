@@ -1,31 +1,51 @@
 package enc_dec;
 
+import io.github.cdimascio.dotenv.Dotenv;
+
 import javax.crypto.*;
 import javax.crypto.spec.*;
 import java.io.*;
 import java.nio.charset.StandardCharsets;
-import java.nio.file.*;
 import java.security.*;
-import java.security.spec.*;
 import java.util.*;
 import java.util.Base64;
 
 public class ConfigFileDecryptor {
 
-    public static void main(String[] args) throws Exception {
-        String encryptedFile = "test.txt.enc";
-        String keystoreFile = "test.jks";
-        String configFile = "";
-        String password = "";
+    private static final String encryptedFile = "";
+    private static final String keystoreFile = "";
+    private static final String configFile = "";
+    private static final String envFile = "";
 
-        Properties config = new Properties();
-        try (FileInputStream fis = new FileInputStream(configFile)) {
-            config.load(fis);
+    public static String getConfigFileContents() {
+        String decryptedContent = "";
+        try{
+            Properties config = new Properties();
+            try (FileInputStream fis = new FileInputStream(configFile)) {
+                config.load(fis);
+            }
+            String master = getMasterPassword();
+            SecretKey fileKey = loadKeyFromKeystore(keystoreFile, decryptPasswordFromConfig(config, master));
+            decryptedContent = decryptFileContents(encryptedFile, fileKey);
+        } catch (Exception e){
+            e.printStackTrace();
         }
-        String decryptedPassword = decryptPasswordFromConfig(config, password);
-        SecretKey fileKey = loadKeyFromKeystore(keystoreFile, decryptedPassword);
-        String decryptedContent = decryptFileToString(encryptedFile, fileKey);
-        System.out.println(decryptedContent);
+        return decryptedContent;
+    }
+
+    private static final Dotenv dotenv = Dotenv.configure()
+            .filename(envFile)
+            .ignoreIfMissing()
+            .load();
+
+    private static String getMasterPassword() {
+        String dotenvPassword = dotenv.get("MASTER");
+        if (dotenvPassword != null && !dotenvPassword.trim().isEmpty()) {
+            return dotenvPassword.trim();
+        }
+        throw new IllegalStateException(
+                "Master password not found"
+        );
     }
 
     private static String decryptPasswordFromConfig(Properties config, String password) {
@@ -73,7 +93,7 @@ public class ConfigFileDecryptor {
         return entry.getSecretKey();
     }
 
-    private static String decryptFileToString(String inputFile, SecretKey key)
+    private static String decryptFileContents(String inputFile, SecretKey key)
             throws Exception {
         try (FileInputStream fis = new FileInputStream(inputFile)) {
             byte[] iv = new byte[16];
@@ -81,7 +101,6 @@ public class ConfigFileDecryptor {
             if (bytesRead != 16) {
                 throw new IOException("bytesRead != 16");
             }
-
             Cipher cipher = Cipher.getInstance("AES/CBC/PKCS5Padding");
             cipher.init(Cipher.DECRYPT_MODE, key, new IvParameterSpec(iv));
             try (CipherInputStream cis = new CipherInputStream(fis, cipher);
@@ -96,4 +115,3 @@ public class ConfigFileDecryptor {
         }
     }
 }
-
