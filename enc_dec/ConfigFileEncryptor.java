@@ -1,4 +1,4 @@
-package encrypt;
+package enc_dec;
 
 import javax.crypto.*;
 import javax.crypto.spec.PBEKeySpec;
@@ -116,4 +116,5 @@ public class ConfigFileEncryptor {
         config.setProperty("keystore.password.iter",
                 String.valueOf(iterations));
     }
+
 }
